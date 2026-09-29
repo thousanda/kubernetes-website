@@ -133,7 +133,7 @@ Podテンプレートを修正するか新しいPodに切り替えたとして�
 
 ノード上では、{{< glossary_tooltip term_id="kubelet" text="kubelet" >}}はPodテンプレートに関する詳細について監視や管理を直接行うわけではありません。こうした詳細は抽象化されています。こうした抽象化や関心の分離のおかげでシステムのセマンティクスが単純化され、既存のコードを変更せずにクラスターの動作を容易に拡張できるようになっているのです。
 
-## Podの更新と取替
+## Podの更新と取替 {#pod-update-and-replacement}
 
 前のセクションで述べたように、ワークロードリソースのPodテンプレートが変更されると、コントローラーは既存のPodを更新したりパッチを適用したりするのではなく、更新されたテンプレートに基づいて新しいPodを作成します。
 
@@ -141,12 +141,25 @@ KubernetesはPodを直接管理することを妨げません。実行中のPod�
 
 - Podのメタデータのほとんどは固定されたものです。たとえば`namespace`、`name`、`uid`または`creationTimestamp`フィールドは変更できません。`generation`フィールドは特別で、現在の値を増加させる更新のみを受け付けます。
 - `metadata.deletionTimestamp`が設定されている場合、`metadata.finalizers`リストに新しい項目を追加することはできません。
-- Podの更新では`spec.containers[*].image`、`spec.initContainers[*].image`、`spec.activeDeadlineSeconds`または`spec.tolerations`以外のフィールドを変更してはなりません。
+- Podの更新では`spec.containers[*].image`、`spec.initContainers[*].image`、`spec.activeDeadlineSeconds`、`spec.terminationGracePeriodSeconds`、`spec.tolerations`または`spec.schedulingGates`以外のフィールドを変更してはなりません。
 `spec.tolerations`については新しい項目のみを追加することができます。
 - `spec.activeDeadlineSeconds`フィールドを更新する場合、2種類の更新が可能です:
 
   1. 未割り当てのフィールドに正の数を設定する
-  1. 現在の値から負の数でない、より小さい数に更新する
+  1. 現在の正の値から、より小さい非負の値に更新する
+
+### Podのサブリソース {#pod-subresources}
+
+上記の更新ルールは通常のPodの更新に適用されますが、その他のPodのフィールドは_サブリソース_を通じて更新できます。
+
+- **サイズ変更:** `resize`サブリソースを使用すると、コンテナのリソース(`spec.containers[*].resources`)を更新できます。
+  詳細については、[コンテナのリソースのサイズ変更](/docs/tasks/configure-pod-container/resize-container-resources/)を参照してください。
+- **エフェメラルコンテナ:** `ephemeralContainers`サブリソースを使用すると、Podに{{< glossary_tooltip text="エフェメラルコンテナ" term_id="ephemeral-container" >}}を追加できます。
+  詳細については、[エフェメラルコンテナ](/docs/concepts/workloads/pods/ephemeral-containers/)を参照してください。
+- **ステータス:** `status`サブリソースを使用すると、Podのステータスを更新できます。
+  通常、これはkubeletやその他のシステムコントローラーのみが使用します。
+- **バインディング:** `binding`サブリソースを使用すると、`Binding`リクエストを通じてPodの`spec.nodeName`を設定できます。
+  通常、これは{{< glossary_tooltip text="スケジューラー" term_id="kube-scheduler" >}}のみが使用します。
 
 ## リソースの共有と通信
 
