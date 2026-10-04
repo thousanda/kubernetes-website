@@ -83,10 +83,15 @@ Podオブジェクトのためのマニフェストを作成したときは、�
 
 {{< feature-state state="stable" for_k8s_version="v1.25" >}}
 
-`.spec.os.name`フィールドで`windows`か`linux`のいずれかを設定し、Podを実行させたいOSを指定する必要があります。Kubernetesは今のところ、この2つのOSだけサポートしています。将来的には増える可能性があります。
+`.spec.os.name`フィールドで`windows`か`linux`のいずれかを設定し、Pod内のコンテナが必要とするOSを指定する必要があります。
+Kubernetesは今のところ、この2つのOSだけサポートしています。
+将来的には増える可能性があります。
 
-Kubernetes v{{< skew currentVersion >}}では、このフィールドに設定した値はPodの{{< glossary_tooltip text="スケジューリング" term_id="kube-scheduler" >}}に影響を与えません。`.spec.os.name`を設定することで、Pod OSに権限を認証することができ、バリデーションにも使用されます。kubeletが実行されているノードのOSが、指定されたPod OSと異なる場合、kubeletはPodの実行を拒否します。
-[Podセキュリティの標準](/ja/docs/concepts/security/pod-security-standards/)もこのフィールドを使用し、指定したOSと関係ないポリシーの適用を回避しています。
+`.spec.os.name`の値がノードのOSと一致しない場合、kubeletはPodの実行を拒否します。
+ただし、Kubernetes v{{< skew currentVersion >}}では、`.spec.os.name`の値は、{{< glossary_tooltip text="kube-scheduler" term_id="kube-scheduler" >}}がPodを実行するノードを選択する方法には影響しません。
+異なるOSのノードが混在するクラスターでは、各ノードに[kubernetes.io/os](/docs/reference/labels-annotations-taints/#kubernetes-io-os)ラベルを正しく設定し、そのOSのラベルに基づく`nodeSelector`を指定してPodを定義するべきです。
+OSに基づく`nodeSelector`を指定しない場合、kube-schedulerは、Pod内のコンテナに適さないOSを持つノードにPodを割り当てる可能性があります。
+[Podセキュリティの標準](/docs/concepts/security/pod-security-standards/)もこのフィールドを使用し、指定したOSと関係のないポリシーの適用を回避しています。
 
 ### Podとコンテナコントローラー {#pods-and-controllers}
 
