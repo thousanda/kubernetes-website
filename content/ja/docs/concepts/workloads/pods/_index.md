@@ -162,15 +162,35 @@ Podでは、共有ストレージである{{< glossary_tooltip text="ボリュ�
 
 Pod内のコンテナは、システムのhostnameがPodに設定した`name`と同一であると考えます。ネットワークについての詳しい情報は、[ネットワーク](/ja/docs/concepts/cluster-administration/networking/)で説明しています。
 
-## コンテナの特権モード
+## Podのセキュリティ設定 {#pod-security}
 
-Linuxでは、Pod内のどんなコンテナも、`privileged`フラグをコンテナのspecの[security context](/docs/tasks/configure-pod-container/security-context/)に設定することで、特権モード(privileged mode)を有効にできます。これは、ネットワークスタックの操作やハードウェアデバイスへのアクセスなど、オペレーティングシステムの管理者の権限が必要なコンテナの場合に役に立ちます。
+Podやコンテナにセキュリティ上の制約を設定するには、Pod仕様の`securityContext`フィールドを使用します。
+このフィールドにより、Podや個々のコンテナが実行できる操作を細かく制御できます。
+詳細については、[高度なPod設定](/docs/concepts/workloads/pods/advanced-pod-config/)を参照してください。
 
-`WindowsHostProcessContainers`機能を有効にしたクラスターの場合、Pod仕様のsecurityContextに`windowsOptions.hostProcess`フラグを設定することで、[Windows HostProcess Pod](/docs/tasks/configure-pod-container/create-hostprocess-pod)を作成することが可能です。これらのPod内のすべてのコンテナは、Windows HostProcessコンテナとして実行する必要があります。HostProcess Podはホスト上で直接実行され、Linuxの特権コンテナで行われるような管理作業を行うのにも使用できます。
+基本的なセキュリティ設定では、Baseline Podセキュリティ標準を満たし、コンテナをroot以外のユーザーとして実行するべきです。
+次のように、簡単なセキュリティコンテキストを設定できます:
 
-{{< note >}}
-この設定を有効にするには、{{< glossary_tooltip text="コンテナランタイム" term_id="container-runtime" >}}が特権コンテナの概念をサポートしていなければなりません。
-{{< /note >}}
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+  containers:
+  - name: sec-ctx-demo
+    image: busybox
+    command: ["sh", "-c", "sleep 1h"]
+```
+
+ケーパビリティ、seccompプロファイル、詳細なセキュリティオプションなど、高度なセキュリティコンテキストの設定については、[セキュリティの概念](/docs/concepts/security/)を参照してください。
+
+* 利用できるカーネルレベルのセキュリティ制約については、[Podとコンテナに対するLinuxカーネルのセキュリティ制約](/docs/concepts/security/linux-kernel-security-constraints)を参照してください。
+* Podのセキュリティコンテキストの詳細については、[Podまたはコンテナのセキュリティコンテキストを設定する](/docs/tasks/configure-pod-container/security-context/)を参照してください。
 
 ## static Pod
 
