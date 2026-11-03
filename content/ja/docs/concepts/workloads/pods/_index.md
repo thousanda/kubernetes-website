@@ -98,6 +98,16 @@ Kubernetes v{{< skew currentVersion >}}では、このフィールドに設定�
 * {{< glossary_tooltip text="StatefulSet" term_id="statefulset" >}}
 * {{< glossary_tooltip text="DaemonSet" term_id="daemonset" >}}
 
+### スケジューリンググループの指定 {#specifying-a-scheduling-group}
+
+{{< feature-state feature_gate_name="GenericWorkload" >}}
+
+デフォルトでは、Kubernetesは各Podを個別にスケジューリングします。
+ただし、密に結合されたアプリケーションの中には、正しく動作するために、Podのグループを同時にスケジューリングする必要があるものもあります。
+
+[スケジューリンググループ](/docs/concepts/workloads/pods/scheduling-group/)フィールド(`spec.schedulingGroup`)を使用して、Podを[PodGroup](/docs/concepts/workloads/podgroup-api/)に関連付けることができます。
+これにより、`Pod`が特定のグループに属することが`kube-scheduler`に伝わり、グループ全体について協調した配置の決定を一度に適用できるようになります。
+
 ### Podテンプレート {#pod-templates}
 
 {{< glossary_tooltip text="workload" term_id="workload" >}}リソース向けのコントローラーは、Podを*Podテンプレート*を元に作成し、あなたの代わりにPodを管理してくれます。
