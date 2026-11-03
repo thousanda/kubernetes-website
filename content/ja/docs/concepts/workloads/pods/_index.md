@@ -139,7 +139,7 @@ Podテンプレートを修正するか新しいPodに切り替えたとして�
 
 KubernetesはPodを直接管理することを妨げません。実行中のPodの一部のフィールドをその場で更新することが可能です。しかし、[`patch`](/docs/reference/generated/kubernetes-api/{{< param "version" >}}/#patch-pod-v1-core)と[`replace`](/docs/reference/generated/kubernetes-api/{{< param "version" >}}/#replace-pod-v1-core)といった、Podのアップデート操作にはいくつかの制限があります:
 
-- Podのメタデータのほとんどは固定されたものです。たとえば`namespace`、`name`、`uid`または`creationTimestamp`フィールドは変更できません。`generation`フィールドは特別で、現在の値を増加させる更新のみを受け付けます。
+- Podのメタデータのほとんどは固定されたものです。たとえば`namespace`、`name`、`uid`または`creationTimestamp`フィールドは変更できません。
 - `metadata.deletionTimestamp`が設定されている場合、`metadata.finalizers`リストに新しい項目を追加することはできません。
 - Podの更新では`spec.containers[*].image`、`spec.initContainers[*].image`、`spec.activeDeadlineSeconds`または`spec.tolerations`以外のフィールドを変更してはなりません。
 `spec.tolerations`については新しい項目のみを追加することができます。
@@ -147,6 +147,45 @@ KubernetesはPodを直接管理することを妨げません。実行中のPod�
 
   1. 未割り当てのフィールドに正の数を設定する
   1. 現在の値から負の数でない、より小さい数に更新する
+
+### Podの世代 {#pod-generation}
+
+- `metadata.generation`フィールドは特別なフィールドです。
+  システムによって自動的に設定され、新しいPodの`metadata.generation`は1となり、Podのspec内の変更可能なフィールドが更新されるたびに1ずつ増加します。
+
+{{< feature-state feature_gate_name="PodObservedGenerationTracking" >}}
+
+- `observedGeneration`は、Podオブジェクトの`status`セクションに記録されるフィールドです。
+  kubeletは、Podの状態と現在のPodステータスとの対応を追跡するために、`status.observedGeneration`を設定します。
+  Podの`status.observedGeneration`には、Podのステータスが報告される時点の`metadata.generation`が反映されます。
+
+{{< note >}}
+`status.observedGeneration`フィールドはkubeletによって管理されるため、外部のコントローラーはこのフィールドを**変更してはなりません**。
+{{< /note >}}
+
+ステータスの各フィールドは、現在の同期ループの`metadata.generation`、または前回の同期ループの`metadata.generation`のいずれかに関連付けられます。
+主な違いは、`spec`の変更が`status`に直接反映されるか、実行中のプロセスの間接的な結果として反映されるかです。
+
+#### 直接的なステータス更新 {#direct-status-updates}
+
+割り当てられたspecが直接反映されるステータスフィールドでは、`observedGeneration`は現在の`metadata.generation`(世代N)に関連付けられます。
+
+この動作は、以下に適用されます:
+
+- **サイズ変更のステータス**: リソースのサイズ変更操作のステータス。
+- **割り当てられたリソース**: サイズ変更後にPodに割り当てられたリソース。
+- **エフェメラルコンテナ**: 新しいエフェメラルコンテナが追加され、`Waiting`状態にある場合。
+
+#### 間接的なステータス更新 {#indirect-status-updates}
+
+specに基づく実行の間接的な結果を表すステータスフィールドでは、`observedGeneration`は前回の同期ループの`metadata.generation`(世代N-1)に関連付けられます。
+
+この動作は、以下に適用されます:
+
+- **コンテナイメージ**: 新しいイメージが取得され、コンテナが更新されるまで、`ContainerStatus.ImageID`には前の世代のイメージが反映されます。
+- **実際のリソース**: サイズ変更の進行中は、実際に使用されているリソースは引き続き前の世代のリクエストに対応します。
+- **コンテナの状態**: 再起動を必要とするポリシーが設定されている場合、サイズ変更の進行中は前の世代のリクエストが反映されます。
+- **activeDeadlineSeconds**、**terminationGracePeriodSeconds**、**deletionTimestamp**: これらのフィールドがPodのステータスに与える影響は、以前に観測された仕様に基づく結果です。
 
 ## リソースの共有と通信
 
