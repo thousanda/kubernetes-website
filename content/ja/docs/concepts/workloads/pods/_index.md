@@ -57,16 +57,6 @@ Kubernetesクラスター内のPodは、主に次の2種類の方法で使われ
 
 Kubernetesがワークロードリソースとそのコントローラーを活用して、スケーラブルで自動回復するアプリケーションを実装する方法については、詳しくは[Podとコントローラー](#pods-and-controllers)を参照してください。
 
-### Podが複数のコンテナを管理する方法
-
-Podは、まとまりの強いサービスのユニットを構成する、複数の協調する(コンテナとして実行される)プロセスをサポートするために設計されました。単一のPod内の複数のコンテナは、クラスター内の同じ物理または仮想マシン上で、自動的に同じ場所に配置・スケジューリングされます。コンテナ間では、リソースや依存関係を共有したり、お互いに通信したり、停止するときにはタイミングや方法を協調して実行できます。
-
-たとえば、あるコンテナが共有ボリューム内のファイルを配信するウェブサーバーとして動作し、別の「サイドカー」コンテナがリモートのリソースからファイルをアップデートするような構成が考えられます。この構成を以下のダイアグラムに示します。
-
-{{< figure src="/images/docs/pod.svg" alt="Pod作成ダイアグラム" class="diagram-medium" >}}
-
-Podによっては、{{< glossary_tooltip text="appコンテナ" term_id="app-container" >}}に加えて{{< glossary_tooltip text="initコンテナ" term_id="init-container" >}}を持っている場合があります。initコンテナはappコンテナが起動する前に実行・完了するコンテナです。
-
 Podは、Podを構成する複数のコンテナに対して、[ネットワーク](#pod-networking)と[ストレージ](#pod-storage)の2種類の共有リソースを提供します。
 
 ## Podを利用する {#working-with-pods}
@@ -186,6 +176,39 @@ Static Podの`spec`は他のAPIオブジェクト
 {{< glossary_tooltip text="ConfigMap" term_id="configmap" >}}、
 {{< glossary_tooltip text="Secret" term_id="secret" >}}、など)を参照することはできません。
 {{< /note >}}
+
+## 複数のコンテナを持つPod {#how-pods-manage-multiple-containers}
+
+Podは、まとまりのあるサービスの単位を構成する、複数の協調するプロセス(コンテナ)をサポートするために設計されています。
+Pod内のコンテナは、クラスター内の同じ物理マシンまたは仮想マシン上に、自動的に配置・スケジューリングされます。
+コンテナはリソースや依存関係を共有し、互いに通信し、終了のタイミングや方法を調整できます。
+
+<!-- ページ前半の説明を、詳細を加えて意図的に繰り返しています。 -->
+Kubernetesクラスター内のPodは、主に次の2つの方法で使用されます:
+
+* **単一のコンテナを実行するPod**。「1Pod1コンテナ」モデルは、Kubernetesで最も一般的なユースケースです。
+  この場合、Podは単一のコンテナのラッパーと考えることができます。
+  Kubernetesはコンテナを直接管理するのではなく、Podを管理します。
+* **協調する必要がある複数のコンテナを実行するPod**。Podは、密に結合され、リソースを共有する必要がある、同じ場所に配置された複数のコンテナで構成されるアプリケーションをカプセル化できます。
+  これらのコンテナは、まとまりのあるサービスの単位を構成します。
+  たとえば、あるコンテナが共有ボリュームに保存されたデータを外部に配信し、別の{{< glossary_tooltip text="サイドカーコンテナ" term_id="sidecar-container" >}}がそのファイルを更新します。
+  Podは、これらのコンテナ、ストレージリソース、一時的なネットワークIDを1つの単位としてまとめます。
+
+たとえば、共有ボリューム内のファイルを配信するウェブサーバーとして動作するコンテナと、リモートのソースからそのファイルを更新する別の[サイドカーコンテナ](/docs/concepts/workloads/pods/sidecar-containers/)を組み合わせることができます。
+次の図はその構成を示しています:
+
+{{< figure src="/images/docs/pod.svg" alt="Pod作成ダイアグラム" class="diagram-medium" >}}
+
+Podによっては、{{< glossary_tooltip text="appコンテナ" term_id="app-container" >}}に加えて{{< glossary_tooltip text="initコンテナ" term_id="init-container" >}}を持つ場合があります。
+デフォルトでは、initコンテナはappコンテナが起動する前に実行され、完了します。
+
+メインアプリケーションのPodに補助的なサービス(サービスメッシュなど)を提供する[サイドカーコンテナ](/docs/concepts/workloads/pods/sidecar-containers/)を持つこともできます。
+
+{{< feature-state feature_gate_name="SidecarContainers" >}}
+
+デフォルトで有効な`SidecarContainers`[フィーチャーゲート](/docs/reference/command-line-tools-reference/feature-gates/)により、initコンテナに`restartPolicy: Always`を指定できます。
+再起動ポリシーに`Always`を設定すると、そのコンテナは_サイドカー_として扱われ、Podのライフタイム全体を通じて実行され続けます。
+サイドカーコンテナとして明示的に定義されたコンテナは、メインアプリケーションのPodよりも先に起動し、Podがシャットダウンされるまで実行され続けます。
 
 ## コンテナのProbe
 
