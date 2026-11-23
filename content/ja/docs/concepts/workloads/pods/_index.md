@@ -91,7 +91,7 @@ Kubernetesは今のところ、この2つのOSだけサポートしています�
 ただし、Kubernetes v{{< skew currentVersion >}}では、`.spec.os.name`の値は、{{< glossary_tooltip text="kube-scheduler" term_id="kube-scheduler" >}}がPodを実行するノードを選択する方法には影響しません。
 異なるOSのノードが混在するクラスターでは、各ノードに[kubernetes.io/os](/docs/reference/labels-annotations-taints/#kubernetes-io-os)ラベルを正しく設定し、そのOSのラベルに基づく`nodeSelector`を指定してPodを定義するべきです。
 OSに基づく`nodeSelector`を指定しない場合、kube-schedulerは、Pod内のコンテナに適さないOSを持つノードにPodを割り当てる可能性があります。
-[Podセキュリティの標準](/docs/concepts/security/pod-security-standards/)もこのフィールドを使用し、指定したOSと関係のないポリシーの適用を回避しています。
+[Podセキュリティの標準](/docs/concepts/security/pod-security-standards/)も`.spec.os.name`フィールドを使用し、指定したOSと関係のないポリシーの適用を回避しています。
 
 ### Podとコンテナコントローラー {#pods-and-controllers}
 
